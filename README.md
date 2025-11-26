@@ -25,6 +25,38 @@ Unlocks complete Captain AI functionality with **all 7 menus** instead of just 3
 
 **Result: Complete 7-menu Captain interface without paywall**
 
+## ⚠️ IMPORTANT: Captain V2 Compatibility Issue
+
+**Known Issue with Captain V2 and Custom Endpoints:**
+
+Captain V2 (which provides the additional 4 menus: Scenarios, Tools, Guardrails, Guidelines) has a configuration compatibility issue when using **custom API endpoints** like OpenRouter or even standard OpenAI endpoints in some cases.
+
+**The Problem:**
+- Captain V2 uses the `ai-agents` gem which expects `RubyLLM.configure` setup
+- The unlock script sets configurations via `InstallationConfig` table
+- These configurations are not properly loaded by the `ai-agents` gem
+- Result: `RubyLLM::ConfigurationError: "openai provider is not configured..."`
+
+**Recommended Approaches:**
+
+1. **V1 Only (Stable - Recommended for most users):**
+   - Enables 3 core Captain menus that work reliably with any endpoint
+   - Modify the script to only enable `captain_integration` (V1)
+   - Works perfectly with OpenRouter, OpenAI, and other custom endpoints
+
+2. **V1 + V2 (Experimental - May require manual configuration):**
+   - Enables all 7 menus but V2 features may not work with custom endpoints
+   - Requires proper RubyLLM configuration in `/config/initializers/ai_agents.rb`
+   - Best for users who plan to use only OpenAI's official endpoint
+
+**Quick Fix if V2 Causes Issues:**
+```bash
+docker exec -it <chatwoot_container> bundle exec rails runner "
+  Account.find_each { |a| a.disable_features('captain_integration_v2') }
+  puts 'V2 disabled - V1 still active'
+"
+```
+
 ## 🆚 Difference from Original Dchat
 
 [CHypeTools/Dchat](https://github.com/CHypeTools/Dchat) works great for Chatwoot v4.7, but in **v4.8+** the Captain menu doesn't show completely because feature flags are missing.
@@ -41,6 +73,18 @@ This enhanced version adds:
 - Docker/Portainer or container access
 - PostgreSQL with trigger support
 - Administrator permissions
+
+## ⚙️ Configuration
+
+Before running the unlock, decide which version to enable by editing line 17 in `unlock_captain_v4.8.rb`:
+
+```ruby
+ENABLE_V2 = false  # Recommended: V1 only (stable with custom endpoints)
+# OR
+ENABLE_V2 = true   # V1 + V2 (experimental, may have issues)
+```
+
+**Recommendation**: Keep `ENABLE_V2 = false` for compatibility with OpenRouter, OpenAI, and other custom endpoints.
 
 ## 🚀 Quick Start
 
@@ -174,6 +218,27 @@ docker exec -it <container> bundle exec rails runner "
 
 Deve mostrar: `"enterprise"`
 
+### RubyLLM::ConfigurationError - openai provider is not configured
+
+**Error in Sidekiq logs:**
+```
+error=#<RubyLLM::ConfigurationError: "openai provider is not configured...">
+```
+
+**Cause:** Captain V2 is enabled but the `ai-agents` gem cannot load the InstallationConfig values.
+
+**Solution 1 - Disable V2 (Recommended):**
+```bash
+docker exec -it <container> bundle exec rails runner "
+  Account.find_each { |a| a.disable_features('captain_integration_v2') }
+  puts 'Captain V2 disabled - V1 will continue working'
+"
+docker restart <container>
+```
+
+**Solution 2 - Use V1-only unlock script:**
+Modify the unlock script to only enable V1 (see script modifications section).
+
 ## 🔒 Persistence
 
 Configurations are **permanent** because:
@@ -229,6 +294,14 @@ docker exec -it <chatwoot_container> bundle exec rails runner "
 - Educational Project
 
 ## 📝 Changelog
+
+### v4.8.1 Edition (2025-11-26)
+- 🔧 **BREAKING**: Changed default to V1 only (`ENABLE_V2 = false`)
+- ⚠️ Added configurable Captain version selection (V1 only vs V1+V2)
+- 📚 Documented Captain V2 compatibility issues with custom endpoints
+- 🐛 Added troubleshooting for `RubyLLM::ConfigurationError`
+- 💡 Added configuration guide for choosing between V1 and V2
+- ✅ Improved verification output to show selected version
 
 ### v4.8 Edition (2025-11-26)
 - ✨ Added automatic Captain V1 and V2 feature enablement

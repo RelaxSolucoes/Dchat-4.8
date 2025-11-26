@@ -6,6 +6,17 @@
 require 'fileutils'
 require 'yaml'
 
+# ============================================================================
+# CONFIGURATION: Choose which Captain version to enable
+# ============================================================================
+# Set to false if you plan to use custom endpoints (OpenRouter, etc.)
+# Captain V2 has compatibility issues with custom endpoints due to RubyLLM configuration
+#
+# V1 Only (ENABLE_V2 = false):  Stable, works with any endpoint (3 menus)
+# V1 + V2 (ENABLE_V2 = true):   Experimental, may require manual config (7 menus)
+ENABLE_V2 = false  # Change to true if you want V2 features (not recommended for custom endpoints)
+# ============================================================================
+
 puts "🚀 === Dchat Captain - Complete Unlock for v4.8+ ==="
 puts ""
 
@@ -105,15 +116,28 @@ end
 
 # 3. Enable Captain features for all accounts (NEW - required for v4.8+)
 begin
-  puts "🔓 Enabling Captain V1 and V2 features..."
+  if ENABLE_V2
+    puts "🔓 Enabling Captain V1 and V2 features..."
+    puts "⚠️  WARNING: V2 may have compatibility issues with custom endpoints"
+  else
+    puts "🔓 Enabling Captain V1 features only (stable)..."
+    puts "ℹ️  V2 disabled for better compatibility with custom endpoints"
+  end
+  puts ""
 
   account_count = 0
   Account.find_each do |account|
-    account.enable_features!('captain_integration', 'captain_integration_v2')
+    if ENABLE_V2
+      account.enable_features!('captain_integration', 'captain_integration_v2')
+      puts "  ✅ Account ##{account.id}: #{account.name} (V1 + V2)"
+    else
+      account.enable_features!('captain_integration')
+      puts "  ✅ Account ##{account.id}: #{account.name} (V1 only)"
+    end
     account_count += 1
-    puts "  ✅ Account ##{account.id}: #{account.name}"
   end
 
+  puts ""
   puts "✅ Captain enabled for #{account_count} account(s)"
   puts ""
 
@@ -219,9 +243,19 @@ puts "🎉 === Unlock Complete ==="
 puts ""
 puts "📋 Applied:"
 puts "  • Enterprise configurations with permanent trigger protection"
-puts "  • Captain V1 (FAQs, Documents, Playground, Inboxes, Settings)"
-puts "  • Captain V2 (Scenarios, Tools, Guardrails, Guidelines)"
+if ENABLE_V2
+  puts "  • Captain V1 (FAQs, Documents, Playground, Inboxes, Settings)"
+  puts "  • Captain V2 (Scenarios, Tools, Guardrails, Guidelines)"
+  puts "  ⚠️  V2 enabled - may have issues with custom endpoints"
+else
+  puts "  • Captain V1 only (FAQs, Documents, Playground, Inboxes, Settings)"
+  puts "  ✅ V2 disabled for better compatibility with custom endpoints"
+end
 puts "  • Fallback value patches"
+puts ""
+puts "💡 Configuration:"
+puts "   ENABLE_V2 = #{ENABLE_V2}"
+puts "   To change: Edit line 17 in unlock_captain_v4.8.rb and re-run"
 puts ""
 puts "🔄 Restart your Chatwoot container to apply all changes"
 puts "🌟 Dchat - Educational Project - v4.8+ Edition"

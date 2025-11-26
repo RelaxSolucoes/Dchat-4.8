@@ -355,6 +355,59 @@ docker stack deploy -c docker-compose.yml chatwoot
 **Why this happens:**
 Docker preserves volume contents when you update images. If you upgraded from Chatwoot v4.7 or earlier to v4.8+, the old JavaScript files remain in the volume and override the new ones from the image.
 
+### RubyLLM::ConfigurationError After Unlock
+
+**Symptoms:**
+- Captain menu appears in sidebar
+- Clicking on Captain features causes automatic handoff to human
+- Sidekiq logs show: `error=#<RubyLLM::ConfigurationError: "openai provider is not configured...">`
+- Even with correct API keys configured in Super Admin
+
+**Cause:**
+Captain V2 uses the `ai-agents` gem which expects `RubyLLM.configure` setup in Rails initializers. The unlock script sets configurations via `InstallationConfig` table, but these are not properly loaded by the `ai-agents` gem during initialization.
+
+**Diagnosis:**
+```bash
+# Check if V2 is enabled
+docker exec -it <chatwoot_container> bundle exec rails runner "
+  Account.find_each do |a|
+    puts \"Account #{a.id}: V1=#{a.feature_captain_integration?} V2=#{a.feature_captain_integration_v2?}\"
+  end
+"
+```
+
+If V2 shows `true`, that's the issue.
+
+**Solution 1 - Disable V2 (Recommended for Custom Endpoints):**
+```bash
+docker exec -it <chatwoot_container> bundle exec rails runner "
+  Account.find_each { |a| a.disable_features('captain_integration_v2') }
+  puts 'Captain V2 disabled - V1 remains active'
+"
+docker restart <chatwoot_container>
+```
+
+After restart, Captain V1 will work normally with OpenRouter, OpenAI, or any custom endpoint.
+
+**Solution 2 - Use V1-Only Unlock Script:**
+Before running the unlock script, modify line 112 in `unlock_captain_v4.8.rb`:
+
+Change from:
+```ruby
+account.enable_features!('captain_integration', 'captain_integration_v2')
+```
+
+To:
+```ruby
+account.enable_features!('captain_integration')  # V1 only
+```
+
+This gives you stable Captain functionality without V2 complications.
+
+**Understanding the Trade-off:**
+- **V1 Only**: 3 menus (FAQs, Documents, Playground) - Works with any endpoint
+- **V1 + V2**: 7 menus - V2 features may not work with custom endpoints
+
 ### Menu Doesn't Appear After Restart
 
 **Cause:** Browser cache
