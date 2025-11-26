@@ -56,6 +56,9 @@ value: 9999999
 $$::text), true, NOW(), NOW()),
       ('IS_ENTERPRISE', to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
 value: true
+$$::text), true, NOW(), NOW()),
+      ('INSTALLATION_TYPE', to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+value: enterprise
 $$::text), true, NOW(), NOW())
     ON CONFLICT (name) DO UPDATE 
       SET serialized_value = EXCLUDED.serialized_value,
@@ -137,6 +140,11 @@ begin
     content.gsub!(
       /(InstallationConfig\.find_by\(name:\s*['"]INSTALLATION_PRICING_PLAN_QUANTITY['"]\)&?\.value\s*\|\|\s*)0/,
       "\\19999999"
+    )
+
+    content.gsub!(
+      /(InstallationConfig\.find_by\(name:\s*['"]INSTALLATION_TYPE['"]\)&?\.value\s*\|\|\s*)['"][^'"]+['"]/,
+      "\\1'enterprise'"
     )
 
     if content != original
