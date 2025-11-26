@@ -14,7 +14,31 @@ sql_trigger = <<-SQL
 CREATE OR REPLACE FUNCTION force_enterprise_installation_configs()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.name IN ('INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE') THEN
+    IF NEW.name = 'INSTALLATION_PRICING_PLAN' THEN
+        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+value: enterprise
+$$::text);
+        NEW.locked = true;
+    END IF;
+
+    IF NEW.name = 'INSTALLATION_PRICING_PLAN_QUANTITY' THEN
+        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+value: 9999999
+$$::text);
+        NEW.locked = true;
+    END IF;
+
+    IF NEW.name = 'IS_ENTERPRISE' THEN
+        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+value: true
+$$::text);
+        NEW.locked = true;
+    END IF;
+
+    IF NEW.name = 'INSTALLATION_TYPE' THEN
+        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+value: enterprise
+$$::text);
         NEW.locked = true;
     END IF;
 
@@ -71,6 +95,7 @@ $$::text), true, NOW(), NOW())
   puts "✅ INSTALLATION_PRICING_PLAN: enterprise"
   puts "✅ INSTALLATION_PRICING_PLAN_QUANTITY: 9999999"
   puts "✅ IS_ENTERPRISE: true"
+  puts "✅ INSTALLATION_TYPE: enterprise"
   puts ""
 
 rescue => e
@@ -166,6 +191,11 @@ puts "🔍 Verification:"
 configs = InstallationConfig.where(name: ['INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE'])
 configs.each do |config|
   puts "   • #{config.name}: #{config.value} (locked: #{config.locked})"
+end
+
+it = InstallationConfig.find_by(name: 'INSTALLATION_TYPE')
+if it
+  puts "   • INSTALLATION_TYPE: #{it.value} (locked: #{it.locked})"
 end
 
 trigger_check = ActiveRecord::Base.connection.execute(
