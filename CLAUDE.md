@@ -40,9 +40,9 @@ FOR EACH ROW
 EXECUTE FUNCTION force_enterprise_installation_configs();
 ```
 
-**JSON Format Fix:**
-- Original Dchat: `to_jsonb('--- !ruby/hash:...')` - causes type error
-- This version: `'{"value": "enterprise"}'::jsonb` - works correctly
+**Format Fix:**
+- Rails expects YAML with `!ruby/hash:ActiveSupport::HashWithIndifferentAccess` when reading `InstallationConfig#value`.
+- Store as JSONB string containing that YAML using `to_jsonb($$...yaml...$$::text)` to satisfy PostgreSQL `jsonb` while providing a Ruby `String` to the YAML coder.
 
 ### 2. Database Configurations
 
@@ -157,8 +157,8 @@ See `TESTING.md` for complete test procedure.
 **Solution:** Check feature enablement step in code
 
 ### Issue: Trigger creation fails with type error
-**Cause:** Using old YAML format from original Dchat
-**Solution:** Use JSON format: `'{"value": "X"}'::jsonb`
+**Cause:** Legacy/broken trigger in the database
+**Solution:** Drop old trigger/function and re-run unlock script
 
 ### Issue: Menu doesn't appear after restart
 **Cause:** Browser cache

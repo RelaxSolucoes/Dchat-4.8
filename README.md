@@ -141,15 +141,16 @@ docker exec -it <container> bundle exec rails runner "
 
 ### Error 500 when accessing
 
-May be JSON format issue in configurations. Check:
+Pode ser problema de formato nas configurações. Verifique via API do modelo:
 
 ```bash
 docker exec -it <container> bundle exec rails runner "
-  puts InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN').serialized_value.inspect
+  c = InstallationConfig.find_by(name: 'INSTALLATION_PRICING_PLAN')
+  puts c.value.inspect
 "
 ```
 
-Should show: `{"value"=>"enterprise"}`
+Deve mostrar: `"enterprise"`
 
 ## 🔒 Persistence
 
