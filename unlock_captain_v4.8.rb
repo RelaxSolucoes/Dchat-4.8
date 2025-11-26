@@ -50,13 +50,13 @@ begin
     VALUES 
       ('INSTALLATION_PRICING_PLAN', to_jsonb('---
 value: enterprise
-'), true, NOW(), NOW()),
+'::text), true, NOW(), NOW()),
       ('INSTALLATION_PRICING_PLAN_QUANTITY', to_jsonb('---
 value: 9999999
-'), true, NOW(), NOW()),
+'::text), true, NOW(), NOW()),
       ('IS_ENTERPRISE', to_jsonb('---
 value: true
-'), true, NOW(), NOW())
+'::text), true, NOW(), NOW())
     ON CONFLICT (name) DO UPDATE 
       SET serialized_value = EXCLUDED.serialized_value,
           locked = EXCLUDED.locked,
