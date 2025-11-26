@@ -5,7 +5,6 @@
 
 require 'fileutils'
 require 'yaml'
-require 'active_support/hash_with_indifferent_access'
 
 puts "🚀 === Dchat Captain - Complete Unlock for v4.8+ ==="
 puts ""
@@ -49,9 +48,9 @@ begin
   upsert_sql = <<-SQL
     INSERT INTO installation_configs (name, serialized_value, locked, created_at, updated_at)
     VALUES 
-      ('INSTALLATION_PRICING_PLAN', '---\nvalue: enterprise\n', true, NOW(), NOW()),
-      ('INSTALLATION_PRICING_PLAN_QUANTITY', '---\nvalue: 9999999\n', true, NOW(), NOW()),
-      ('IS_ENTERPRISE', '---\nvalue: true\n', true, NOW(), NOW())
+      ('INSTALLATION_PRICING_PLAN', '"---\\nvalue: enterprise\\n"'::jsonb, true, NOW(), NOW()),
+      ('INSTALLATION_PRICING_PLAN_QUANTITY', '"---\\nvalue: 9999999\\n"'::jsonb, true, NOW(), NOW()),
+      ('IS_ENTERPRISE', '"---\\nvalue: true\\n"'::jsonb, true, NOW(), NOW())
     ON CONFLICT (name) DO UPDATE 
       SET serialized_value = EXCLUDED.serialized_value,
           locked = EXCLUDED.locked,
