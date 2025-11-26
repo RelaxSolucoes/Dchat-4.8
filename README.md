@@ -44,24 +44,33 @@ This enhanced version adds:
 
 ## 🚀 Quick Start
 
-### Method 1: Direct Download (Recommended)
+### Method 1: Docker Auto-Detect (Easiest)
+
+```bash
+curl -sL https://raw.githubusercontent.com/RelaxSolucoes/Dchat-4.8/main/docker-unlock.sh | bash
+```
+
+This script automatically:
+- ✅ Finds your Chatwoot container
+- ✅ Downloads and executes the unlock script
+- ✅ Shows next steps
+
+### Method 2: Direct Download
+
+If you know your container name:
 
 ```bash
 docker exec -it <chatwoot_container> bash -c \
-  "wget -qO- https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/unlock_captain_v4.8.rb | bundle exec rails runner -"
+  "wget -qO- https://raw.githubusercontent.com/RelaxSolucoes/Dchat-4.8/main/unlock_captain_v4.8.rb | bundle exec rails runner -"
 ```
 
-### Method 2: Manual Execution
+### Method 3: Traditional Installation
 
-1. Download the script to your server
-2. Enter the Chatwoot container:
-   ```bash
-   docker exec -it <chatwoot_container> bash
-   ```
-3. Run the script:
-   ```bash
-   bundle exec rails runner /path/to/unlock_captain_v4.8.rb
-   ```
+Execute directly in the Chatwoot container:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/RelaxSolucoes/Dchat-4.8/main/unlock_captain_v4.8.rb | bundle exec rails runner -
+```
 
 ## ✅ Verification
 
