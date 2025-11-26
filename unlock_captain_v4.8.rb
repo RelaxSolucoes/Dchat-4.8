@@ -48,9 +48,15 @@ begin
   upsert_sql = <<-SQL
     INSERT INTO installation_configs (name, serialized_value, locked, created_at, updated_at)
     VALUES 
-      ('INSTALLATION_PRICING_PLAN', '"---\\nvalue: enterprise\\n"'::jsonb, true, NOW(), NOW()),
-      ('INSTALLATION_PRICING_PLAN_QUANTITY', '"---\\nvalue: 9999999\\n"'::jsonb, true, NOW(), NOW()),
-      ('IS_ENTERPRISE', '"---\\nvalue: true\\n"'::jsonb, true, NOW(), NOW())
+      ('INSTALLATION_PRICING_PLAN', to_jsonb('---
+value: enterprise
+'), true, NOW(), NOW()),
+      ('INSTALLATION_PRICING_PLAN_QUANTITY', to_jsonb('---
+value: 9999999
+'), true, NOW(), NOW()),
+      ('IS_ENTERPRISE', to_jsonb('---
+value: true
+'), true, NOW(), NOW())
     ON CONFLICT (name) DO UPDATE 
       SET serialized_value = EXCLUDED.serialized_value,
           locked = EXCLUDED.locked,
