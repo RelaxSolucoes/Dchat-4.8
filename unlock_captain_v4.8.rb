@@ -48,15 +48,9 @@ begin
   upsert_sql = <<-SQL
     INSERT INTO installation_configs (name, serialized_value, locked, created_at, updated_at)
     VALUES 
-      ('INSTALLATION_PRICING_PLAN', to_jsonb('---
-value: enterprise
-'::text), true, NOW(), NOW()),
-      ('INSTALLATION_PRICING_PLAN_QUANTITY', to_jsonb('---
-value: 9999999
-'::text), true, NOW(), NOW()),
-      ('IS_ENTERPRISE', to_jsonb('---
-value: true
-'::text), true, NOW(), NOW())
+      ('INSTALLATION_PRICING_PLAN', '{"value":"enterprise"}'::jsonb, true, NOW(), NOW()),
+      ('INSTALLATION_PRICING_PLAN_QUANTITY', '{"value":9999999}'::jsonb, true, NOW(), NOW()),
+      ('IS_ENTERPRISE', '{"value":true}'::jsonb, true, NOW(), NOW())
     ON CONFLICT (name) DO UPDATE 
       SET serialized_value = EXCLUDED.serialized_value,
           locked = EXCLUDED.locked,
@@ -157,8 +151,8 @@ puts "🔍 Verification:"
 
 configs = InstallationConfig.where(name: ['INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE'])
 configs.each do |config|
-  val = config.value
-  puts "   • #{config.name}: #{val} (locked: #{config.locked})"
+  raw = ActiveRecord::Base.connection.select_one("SELECT serialized_value->>'value' AS v, locked FROM installation_configs WHERE name = '#{config.name}'")
+  puts "   • #{config.name}: #{raw['v']} (locked: #{raw['locked']})"
 end
 
 trigger_check = ActiveRecord::Base.connection.execute(
