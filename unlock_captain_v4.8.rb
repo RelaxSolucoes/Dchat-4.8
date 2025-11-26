@@ -15,30 +15,30 @@ CREATE OR REPLACE FUNCTION force_enterprise_installation_configs()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.name = 'INSTALLATION_PRICING_PLAN' THEN
-        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+        NEW.serialized_value = to_jsonb($yaml$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
 value: enterprise
-$$::text);
+$yaml$::text);
         NEW.locked = true;
     END IF;
 
     IF NEW.name = 'INSTALLATION_PRICING_PLAN_QUANTITY' THEN
-        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+        NEW.serialized_value = to_jsonb($yaml$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
 value: 9999999
-$$::text);
+$yaml$::text);
         NEW.locked = true;
     END IF;
 
     IF NEW.name = 'IS_ENTERPRISE' THEN
-        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+        NEW.serialized_value = to_jsonb($yaml$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
 value: true
-$$::text);
+$yaml$::text);
         NEW.locked = true;
     END IF;
 
     IF NEW.name = 'INSTALLATION_TYPE' THEN
-        NEW.serialized_value = to_jsonb($$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+        NEW.serialized_value = to_jsonb($yaml$--- !ruby/hash:ActiveSupport::HashWithIndifferentAccess
 value: enterprise
-$$::text);
+$yaml$::text);
         NEW.locked = true;
     END IF;
 
