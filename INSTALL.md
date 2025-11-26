@@ -297,9 +297,9 @@ docker exec -it <postgres_container> psql -U postgres -d chatwoot -c \
 
 Then run the unlock script again.
 
-### Only 3 Menus Appear
+### Only 3 Menus Appear (Even After Successful Unlock)
 
-**Cause:** Captain V2 wasn't enabled
+**Cause 1:** Captain V2 wasn't enabled
 
 **Solution:** Run manually:
 ```bash
@@ -308,6 +308,52 @@ docker exec -it <chatwoot_container> bundle exec rails runner \
 ```
 
 Reload the page.
+
+---
+
+**Cause 2:** ⚠️ **CRITICAL - Old Assets Volume** (Most Common)
+
+If you upgraded from an older Chatwoot version but kept the `chatwoot_public` volume, it contains **outdated frontend assets** from before v4.8. Even though the unlock works perfectly in the backend, the old JavaScript files don't support Captain V2!
+
+**Symptoms:**
+- Backend shows: `Captain V1: ✅ | V2: ✅` (correct)
+- Frontend only shows 3 menus (old assets)
+- No error 404 for `/limits` in browser console
+
+**Check if this is your issue:**
+```bash
+# Check asset dates inside container
+docker exec -it <chatwoot_container> ls -lh /app/public/vite/assets/ | head -5
+
+# If dates are older than November 2024, your volume has old assets!
+```
+
+**Solution - Delete Old Assets Volume:**
+
+⚠️ **Important:** This is safe! The `chatwoot_public` volume only contains static assets (JavaScript, CSS, icons). NO user data, messages, or uploads are stored here!
+
+**Via Portainer (Recommended):**
+1. Go to **Stacks** → Stop your Chatwoot stack
+2. Go to **Volumes** → Find `chatwoot_public`
+3. Click **Remove** (it will be recreated with new assets)
+4. Go back to **Stacks** → Start your stack
+5. Wait 2-3 minutes for container to fully start
+6. Access Chatwoot → Logout/Login → Check for 7 menus! 🎉
+
+**Via Command Line:**
+```bash
+# Stop stack first
+docker stack rm chatwoot  # or: docker-compose down
+
+# Remove old volume
+docker volume rm chatwoot_chatwoot_public
+
+# Start stack again - volume will be recreated with new assets
+docker stack deploy -c docker-compose.yml chatwoot
+```
+
+**Why this happens:**
+Docker preserves volume contents when you update images. If you upgraded from Chatwoot v4.7 or earlier to v4.8+, the old JavaScript files remain in the volume and override the new ones from the image.
 
 ### Menu Doesn't Appear After Restart
 

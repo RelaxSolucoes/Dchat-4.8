@@ -105,6 +105,28 @@ After execution, you should see:
 
 4. **Test** creating an assistant - no paywall should appear
 
+---
+
+## ⚠️ IMPORTANT: Upgrading from v4.7 or Earlier?
+
+If you upgraded from Chatwoot v4.7 (or earlier) to v4.8+ and only see **3 menus** instead of 7 after the unlock:
+
+**Problem:** Your `chatwoot_public` Docker volume contains **old frontend assets** that don't support Captain V2.
+
+**Solution:** Delete the `chatwoot_public` volume (safe - only contains static files, NO user data):
+
+**Via Portainer:**
+1. Stop stack → Volumes → Remove `chatwoot_public` → Start stack
+
+**Via Command Line:**
+```bash
+docker stack rm chatwoot
+docker volume rm chatwoot_chatwoot_public
+docker stack deploy -c docker-compose.yml chatwoot
+```
+
+After recreating, you'll see all 7 menus! See [INSTALL.md](INSTALL.md#only-3-menus-appear-even-after-successful-unlock) for details.
+
 ## 🧪 Tested On
 
 - ✅ Chatwoot v4.8.0
