@@ -5,6 +5,7 @@
 
 require 'fileutils'
 require 'yaml'
+require 'active_support/hash_with_indifferent_access'
 
 puts "🚀 === Dchat Captain - Complete Unlock for v4.8+ ==="
 puts ""
@@ -52,13 +53,13 @@ begin
   puts "💾 Updating installation configurations..."
 
   plan = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN')
-  plan.write_attribute(:serialized_value, { 'value' => 'enterprise' }.to_yaml)
+  plan.serialized_value = ActiveSupport::HashWithIndifferentAccess.new('value' => 'enterprise')
   plan.locked = true
   plan.save!
   puts "✅ INSTALLATION_PRICING_PLAN: enterprise"
 
   qty = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN_QUANTITY')
-  qty.write_attribute(:serialized_value, { 'value' => 9_999_999 }.to_yaml)
+  qty.serialized_value = ActiveSupport::HashWithIndifferentAccess.new('value' => 9_999_999)
   qty.locked = true
   qty.save!
   puts "✅ INSTALLATION_PRICING_PLAN_QUANTITY: 9999999"
@@ -76,15 +77,15 @@ rescue => e
 end
 
 begin
-  [["INSTALLATION_PRICING_PLAN", { 'value' => 'enterprise' }], ["INSTALLATION_PRICING_PLAN_QUANTITY", { 'value' => 9_999_999 }]].each do |name, sval|
+  [
+    ['INSTALLATION_PRICING_PLAN', ActiveSupport::HashWithIndifferentAccess.new('value' => 'enterprise')],
+    ['INSTALLATION_PRICING_PLAN_QUANTITY', ActiveSupport::HashWithIndifferentAccess.new('value' => 9_999_999)]
+  ].each do |name, sval|
     c = InstallationConfig.find_by(name: name)
     next unless c
-    raw = c.read_attribute(:serialized_value)
-    unless raw.is_a?(String)
-      c.write_attribute(:serialized_value, sval.to_yaml)
-      c.locked = true
-      c.save!
-    end
+    c.serialized_value = sval
+    c.locked = true
+    c.save!
   end
 rescue => e
   puts "⚠️  Normalization error: #{e.message}"
