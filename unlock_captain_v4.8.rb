@@ -14,12 +14,12 @@ CREATE OR REPLACE FUNCTION force_enterprise_installation_configs()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.name = 'INSTALLATION_PRICING_PLAN' THEN
-        NEW.serialized_value = '{"value": "enterprise"}'::jsonb;
+        NEW.serialized_value = '"enterprise"'::jsonb;
         NEW.locked = true;
     END IF;
 
     IF NEW.name = 'INSTALLATION_PRICING_PLAN_QUANTITY' THEN
-        NEW.serialized_value = '{"value": 9999999}'::jsonb;
+        NEW.serialized_value = '"9999999"'::jsonb;
         NEW.locked = true;
     END IF;
 
@@ -72,6 +72,22 @@ begin
 rescue => e
   puts "❌ Database configuration error: #{e.message}"
   puts ""
+end
+
+# Normalize any existing configs with non-string serialized_value
+begin
+  [["INSTALLATION_PRICING_PLAN", "enterprise"], ["INSTALLATION_PRICING_PLAN_QUANTITY", "9999999"]].each do |name, sval|
+    c = InstallationConfig.find_by(name: name)
+    next unless c
+    raw = c.read_attribute(:serialized_value)
+    unless raw.is_a?(String)
+      c.value = sval
+      c.locked = true
+      c.save!
+    end
+  end
+rescue => e
+  puts "⚠️  Normalization error: #{e.message}"
 end
 
 # 3. Enable Captain features for all accounts (NEW - required for v4.8+)
