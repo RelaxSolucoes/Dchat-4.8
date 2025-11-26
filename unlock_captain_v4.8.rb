@@ -15,13 +15,7 @@ sql_trigger = <<-SQL
 CREATE OR REPLACE FUNCTION force_enterprise_installation_configs()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.name = 'INSTALLATION_PRICING_PLAN' THEN
-        NEW.serialized_value = '---\nvalue: enterprise\n';
-        NEW.locked = true;
-    END IF;
-
-    IF NEW.name = 'INSTALLATION_PRICING_PLAN_QUANTITY' THEN
-        NEW.serialized_value = '---\nvalue: 9999999\n';
+    IF NEW.name IN ('INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE') THEN
         NEW.locked = true;
     END IF;
 
@@ -53,13 +47,13 @@ begin
   puts "💾 Updating installation configurations..."
 
   plan = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN')
-  plan.serialized_value = ActiveSupport::HashWithIndifferentAccess.new('value' => 'enterprise')
+  plan.value = 'enterprise'
   plan.locked = true
   plan.save!
   puts "✅ INSTALLATION_PRICING_PLAN: enterprise"
 
   qty = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN_QUANTITY')
-  qty.serialized_value = ActiveSupport::HashWithIndifferentAccess.new('value' => 9_999_999)
+  qty.value = 9_999_999
   qty.locked = true
   qty.save!
   puts "✅ INSTALLATION_PRICING_PLAN_QUANTITY: 9999999"
@@ -76,16 +70,24 @@ rescue => e
   puts ""
 end
 
+# Cleanup corrupted rows (from previous runs) by recreating them safely
 begin
-  [
-    ['INSTALLATION_PRICING_PLAN', ActiveSupport::HashWithIndifferentAccess.new('value' => 'enterprise')],
-    ['INSTALLATION_PRICING_PLAN_QUANTITY', ActiveSupport::HashWithIndifferentAccess.new('value' => 9_999_999)]
-  ].each do |name, sval|
+  ['INSTALLATION_PRICING_PLAN','INSTALLATION_PRICING_PLAN_QUANTITY'].each do |name|
     c = InstallationConfig.find_by(name: name)
     next unless c
-    c.serialized_value = sval
-    c.locked = true
-    c.save!
+    begin
+      _ = c.value
+    rescue
+      InstallationConfig.where(name: name).delete_all
+      nc = InstallationConfig.new(name: name, locked: true)
+      if name == 'INSTALLATION_PRICING_PLAN'
+        nc.value = 'enterprise'
+      else
+        nc.value = 9_999_999
+      end
+      nc.locked = true
+      nc.save!
+    end
   end
 rescue => e
   puts "⚠️  Normalization error: #{e.message}"
@@ -173,7 +175,13 @@ puts "🔍 Verification:"
 
 configs = InstallationConfig.where(name: ['INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE'])
 configs.each do |config|
-  puts "   • #{config.name}: #{config.value} (locked: #{config.locked})"
+  val = begin
+    config.value
+  rescue
+    raw = config.read_attribute(:serialized_value)
+    raw.is_a?(String) ? raw : raw.inspect
+  end
+  puts "   • #{config.name}: #{val} (locked: #{config.locked})"
 end
 
 trigger_check = ActiveRecord::Base.connection.execute(
