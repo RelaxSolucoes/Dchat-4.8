@@ -4,6 +4,7 @@
 # Educational purposes only
 
 require 'fileutils'
+require 'yaml'
 
 puts "🚀 === Dchat Captain - Complete Unlock for v4.8+ ==="
 puts ""
@@ -14,12 +15,12 @@ CREATE OR REPLACE FUNCTION force_enterprise_installation_configs()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.name = 'INSTALLATION_PRICING_PLAN' THEN
-        NEW.serialized_value = '"enterprise"'::jsonb;
+        NEW.serialized_value = '---\nvalue: enterprise\n';
         NEW.locked = true;
     END IF;
 
     IF NEW.name = 'INSTALLATION_PRICING_PLAN_QUANTITY' THEN
-        NEW.serialized_value = '"9999999"'::jsonb;
+        NEW.serialized_value = '---\nvalue: 9999999\n';
         NEW.locked = true;
     END IF;
 
@@ -51,13 +52,13 @@ begin
   puts "💾 Updating installation configurations..."
 
   plan = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN')
-  plan.value = 'enterprise'
+  plan.write_attribute(:serialized_value, { 'value' => 'enterprise' }.to_yaml)
   plan.locked = true
   plan.save!
   puts "✅ INSTALLATION_PRICING_PLAN: enterprise"
 
   qty = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN_QUANTITY')
-  qty.value = 9_999_999
+  qty.write_attribute(:serialized_value, { 'value' => 9_999_999 }.to_yaml)
   qty.locked = true
   qty.save!
   puts "✅ INSTALLATION_PRICING_PLAN_QUANTITY: 9999999"
@@ -74,14 +75,13 @@ rescue => e
   puts ""
 end
 
-# Normalize any existing configs with non-string serialized_value
 begin
-  [["INSTALLATION_PRICING_PLAN", "enterprise"], ["INSTALLATION_PRICING_PLAN_QUANTITY", "9999999"]].each do |name, sval|
+  [["INSTALLATION_PRICING_PLAN", { 'value' => 'enterprise' }], ["INSTALLATION_PRICING_PLAN_QUANTITY", { 'value' => 9_999_999 }]].each do |name, sval|
     c = InstallationConfig.find_by(name: name)
     next unless c
     raw = c.read_attribute(:serialized_value)
     unless raw.is_a?(String)
-      c.value = sval
+      c.write_attribute(:serialized_value, sval.to_yaml)
       c.locked = true
       c.save!
     end
