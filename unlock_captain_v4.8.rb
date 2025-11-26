@@ -46,51 +46,28 @@ end
 begin
   puts "💾 Updating installation configurations..."
 
-  plan = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN')
-  plan.value = 'enterprise'
-  plan.locked = true
-  plan.save!
+  upsert_sql = <<-SQL
+    INSERT INTO installation_configs (name, serialized_value, locked, created_at, updated_at)
+    VALUES 
+      ('INSTALLATION_PRICING_PLAN', '---\nvalue: enterprise\n', true, NOW(), NOW()),
+      ('INSTALLATION_PRICING_PLAN_QUANTITY', '---\nvalue: 9999999\n', true, NOW(), NOW()),
+      ('IS_ENTERPRISE', '---\nvalue: true\n', true, NOW(), NOW())
+    ON CONFLICT (name) DO UPDATE 
+      SET serialized_value = EXCLUDED.serialized_value,
+          locked = EXCLUDED.locked,
+          updated_at = NOW();
+  SQL
+
+  ActiveRecord::Base.connection.execute(upsert_sql)
+
   puts "✅ INSTALLATION_PRICING_PLAN: enterprise"
-
-  qty = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_PRICING_PLAN_QUANTITY')
-  qty.value = 9_999_999
-  qty.locked = true
-  qty.save!
   puts "✅ INSTALLATION_PRICING_PLAN_QUANTITY: 9999999"
-
-  is_ent = InstallationConfig.find_or_initialize_by(name: 'IS_ENTERPRISE')
-  is_ent.value = true
-  is_ent.locked = true
-  is_ent.save!
   puts "✅ IS_ENTERPRISE: true"
   puts ""
 
 rescue => e
   puts "❌ Database configuration error: #{e.message}"
   puts ""
-end
-
-# Cleanup corrupted rows (from previous runs) by recreating them safely
-begin
-  ['INSTALLATION_PRICING_PLAN','INSTALLATION_PRICING_PLAN_QUANTITY'].each do |name|
-    c = InstallationConfig.find_by(name: name)
-    next unless c
-    begin
-      _ = c.value
-    rescue
-      InstallationConfig.where(name: name).delete_all
-      nc = InstallationConfig.new(name: name, locked: true)
-      if name == 'INSTALLATION_PRICING_PLAN'
-        nc.value = 'enterprise'
-      else
-        nc.value = 9_999_999
-      end
-      nc.locked = true
-      nc.save!
-    end
-  end
-rescue => e
-  puts "⚠️  Normalization error: #{e.message}"
 end
 
 # 3. Enable Captain features for all accounts (NEW - required for v4.8+)
@@ -175,12 +152,7 @@ puts "🔍 Verification:"
 
 configs = InstallationConfig.where(name: ['INSTALLATION_PRICING_PLAN', 'INSTALLATION_PRICING_PLAN_QUANTITY', 'IS_ENTERPRISE'])
 configs.each do |config|
-  val = begin
-    config.value
-  rescue
-    raw = config.read_attribute(:serialized_value)
-    raw.is_a?(String) ? raw : raw.inspect
-  end
+  val = config.value
   puts "   • #{config.name}: #{val} (locked: #{config.locked})"
 end
 
